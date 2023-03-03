@@ -1,0 +1,358 @@
+---
+title: "Kaggle Project - Airbnb Data"
+output: html_document
+date: '2022-04-27'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Importing the data and cleaning 
+
+```{r}
+library(dplyr)
+data = read.csv("/Users/meghna/Desktop/rentlala2022/analysisData.csv")
+scoringData = read.csv('/Users/meghna/Desktop/rentlala2022/scoringData.csv')
+
+
+#cleaning for zipcode:
+data$zipcode<-gsub("NY ","",data$zipcode)
+data$zipcode<-gsub("\n","",data$zipcode)
+data$zipcode<-gsub("-","",data$zipcode)
+data$zipcode<-gsub(" ","",data$zipcode)
+data$zipcode<-gsub("11363","",data$zipcode)
+data$zipcode<-sub("","10000",data$zipcode)
+
+scoringData$zipcode<-gsub("NY ","",scoringData$zipcode)
+scoringData$zipcode<-gsub("\n","",scoringData$zipcode)
+scoringData$zipcode<-gsub("-","",scoringData$zipcode)
+scoringData$zipcode<-gsub("11363","",scoringData$zipcode)
+scoringData$zipcode<-sub("","10000",scoringData$zipcode)
+zipcode<-as.numeric(data$zipcode)
+zipcode<-as.numeric(scoringData$zipcode)
+
+# cleaning security deposit 
+unique(data$security_deposit)
+data$security_deposit[is.na(data$security_deposit)] <- "NA"
+scoringData$security_deposit[is.na(scoringData$security_deposit)] <- "NA"
+
+#cleaning host_listings_count 
+
+
+data$host_listings_count[is.na(data$host_listings_count)] <- "NA"
+scoringData$host_listings_count[is.na(scoringData$host_listings_count)] <- "NA"
+
+#cleaning host response rate
+
+data$host_response_rate[is.na(data$host_response_rate)]<-"NA"
+scoringData$host_response_rate[is.na(scoringData$host_response_rate)]<-"NA"
+data$host_response_rate<-as.numeric(data$host_response_rate)
+scoringData$host_response_rate<-as.numeric(scoringData$host_response_rate)
+
+
+#cleaning host_response_time
+
+data$host_response_time[is.na(data$host_response_time)]<-"NA"
+scoringData$host_response_time[is.na(scoringData$host_response_time)]<-"NA"
+data$host_response_time<-as.numeric(data$host_response_time)
+scoringData$host_response_time<-as.numeric(scoringData$host_response_time)
+
+# host_neighbourhood
+
+data$host_neighbourhood[is.na(data$host_neighbourhood)]<-"NA"
+scoringData$host_neighbourhood[is.na(scoringData$host_neighbourhood)]<-"NA"
+data$host_neighbourhood<-as.factor(data$host_neighbourhood)
+scoringData$host_neighbourhood<-as.factor(scoringData$host_neighbourhood)
+
+# host_listings_counts
+
+data$host_listings_count[is.na(data$host_listings_count)]<-"NA"
+scoringData$host_listings_count[is.na(scoringData$host_listings_count)]<-"NA"
+data$host_listings_count<-as.numeric(data$host_listings_count)
+scoringData$host_listings_count<-as.numeric(scoringData$host_listings_count)
+
+# host_verifications
+
+data$host_verifications[is.na(data$host_verifications)]<-"NA"
+scoringData$host_verifications[is.na(scoringData$host_verifications)]<-"NA"
+data$host_verfications<-as.factor(data$host_verifications)
+scoringData$host_verifications<-as.factor(scoringData$host_verifications)
+
+```
+
+
+## Final Model 
+
+```{r}
+library(randomForest)
+
+set.seed(617)
+formula=price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+security_deposit+neighbourhood_group_cleansed+host_response_rate+host_listings_count+host_has_profile_pic+host_identity_verified+host_is_superhost+reviews_per_month+instant_bookable+number_of_reviews+guests_included+extra_people+minimum_nights+maximum_nights+maximum_minimum_nights+minimum_nights_avg_ntm+review_scores_checkin+review_scores_rating+review_scores_value
+model = randomForest(formula, 
+                     data, 
+                     ntree = 50)
+model
+pred = predict(model,newdata=scoringData)
+summary(model)
+submissionFile11 = data.frame(id = scoringData$id, price = pred10)
+write.csv(submissionFile11, 'sample_submission11.csv',row.names = F)
+
+
+
+
+# Model 10   Latest 69.1
+model10 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+security_deposit+neighbourhood_group_cleansed+host_response_rate+host_listings_count+host_has_profile_pic+host_identity_verified+host_is_superhost+reviews_per_month+instant_bookable+number_of_reviews+guests_included+extra_people+minimum_nights+maximum_nights+maximum_minimum_nights+minimum_nights_avg_ntm+review_scores_checkin+review_scores_rating+review_scores_value,data)
+pred10 = predict(model10,newdata=scoringData)
+summary(model10)
+submissionFile11 = data.frame(id = scoringData$id, price = pred10)
+write.csv(submissionFile11, 'sample_submission11.csv',row.names = F)
+```
+
+## Other Trials 
+
+```{r}
+
+
+
+# Bagging 
+library(ipred)
+set.seed(1031) 
+bag = bagging(price~.,
+              data = data, 
+              nbagg = 100)
+
+bag = bagging(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+beds+bathrooms+host_total_listings_count+host_listings_count+is_location_exact+accommodates,
+              data = data, 
+              nbagg = 100)
+
+
+# Regression Tree 
+tree = rpart(price~.,data = data, method = 'anova')
+
+tree = rpart(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+beds+bathrooms+host_total_listings_count+host_listings_count+is_location_exact+accommodates,data = data, method = 'anova')
+
+# Boosting model 
+library(gbm)
+set.seed(617)
+boost = gbm(price~.,
+            data=data,
+            distribution="gaussian",
+            n.trees = 1000,
+            interaction.depth = 2,
+            shrinkage = 0.01)
+
+boost = gbm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+beds+bathrooms+host_total_listings_count+host_listings_count+is_location_exact+accommodates,
+            data=data,
+            distribution="gaussian",
+            n.trees = 1000,
+            interaction.depth = 2,
+            shrinkage = 0.01)
+
+
+library(dplyr)
+data = read.csv("/Users/meghna/Desktop/rentlala2022/analysisData.csv")
+ncol(data)
+nrow(data)
+scoringData = read.csv('/Users/meghna/Desktop/rentlala2022/scoringData.csv')
+
+head(data)
+
+model4 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+beds+bathrooms+host_total_listings_count+host_listings_count+is_location_exact+accommodates,data)
+
+pred4 = predict(model4,newdata=scoringData)
+summary(model4)
+rmse3=sqrt(mean((pred4-data$price)^2))
+rmse3
+
+
+host_response_time
+host_response_time
+host_listings_count
+host_total_listings_count
+neighbourhood
+neighbourhood_cleansed
+neighbourhood_group_cleansed
+
+
+
+model5 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+accommodates+zipcode,data)
+pred = predict(model5,newdata=scoringData)
+
+model6 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode,data)
+pred6 = predict(model6,newdata=scoringData)
+summary(model6)
+submissionFile6 = data.frame(id = scoringData$id, price = pred6)
+write.csv(submissionFile6, 'sample_submission6.csv',row.names = F)
+
+
+model6 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode,data)
+pred6 = predict(model6,newdata=scoringData)
+summary(model6)
+submissionFile6 = data.frame(id = scoringData$id, price = pred6)
+write.csv(submissionFile6, 'sample_submission6.csv',row.names = F)
+
+
+# Latest 
+model7 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+host_has_profile_pic+host_identity_verified,data)
+pred7 = predict(model7,newdata=scoringData)
+summary(model7)
+submissionFile7 = data.frame(id = scoringData$id, price = pred7)
+write.csv(submissionFile6, 'sample_submission7.csv',row.names = F)
+pred4 = predict(model4,newdata=scoringData)
+summary(model4)
+submissionFile7 = data.frame(id = scoringData$id, price = pred7)
+write.csv(submissionFile6, 'sample_submission7.csv',row.names = F)
+
+
+# Model 8  0 Latest 69.14 
+
+model8 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+host_has_profile_pic+host_identity_verified+security_deposit,data)
+pred8 = predict(model8,newdata=scoringData)
+summary(model8)
+submissionFile8 = data.frame(id = scoringData$id, price = pred8)
+write.csv(submissionFile6, 'sample_submission8.csv',row.names = F)
+
+
+
+
+
+# Model 9   Latest 69.1
+
+model9 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+host_has_profile_pic+host_identity_verified+security_deposit+neighbourhood_group_cleansed,data)
+pred9 = predict(model9,newdata=scoringData)
+summary(model9)
+submissionFile9 = data.frame(id = scoringData$id, price = pred9)
+write.csv(submissionFile9, 'sample_submission9.csv',row.names = F)
+
+unique(scoringData$neighbourhood)
+
+
+# Model 10   Latest 69.1
+model10 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+security_deposit+neighbourhood_group_cleansed+host_response_rate+host_listings_count+host_has_profile_pic+host_identity_verified+host_is_superhost+reviews_per_month+instant_bookable+number_of_reviews+guests_included+extra_people+minimum_nights+maximum_nights+maximum_minimum_nights+minimum_nights_avg_ntm+review_scores_checkin+review_scores_rating+review_scores_value,data)
+pred10 = predict(model10,newdata=scoringData)
+summary(model10)
+submissionFile11 = data.frame(id = scoringData$id, price = pred10)
+write.csv(submissionFile11, 'sample_submission11.csv',row.names = F)
+
+data$reviews_per_month[is.na(data$reviews_per_month)] <- 0
+scoringData$reviews_per_month[is.na(scoringData$reviews_per_month)] <- 0
+data$reviews_per_month<-as.numeric(data$reviews_per_month)
+scoringData$reviews_per_month<-as.numeric(scoringData$reviews_per_month)
+
+# Read scoring data and apply model to generate predictions
+
+# Construct submission from predictions
+
+summary(model5)
+submissionFile5 = data.frame(id = scoringData$id, price = pred)
+write.csv(submissionFile5, 'sample_submission5.csv',row.names = F)
+
+head(submissionFile4)
+
+submissionna<-select(na(submissionFile4$price))
+
+submissionFile4->submissionFile4[complete.cases(submissionFile4),]
+
+#Varibles to be considered: 
+"host_since
+host_verifications contains 'phone'
+city
+smart_location
+bed_type
+guests_included
+extra_people
+minimum_nights
+maximum_nights
+maximum_minimum_nights
+minimum_nights_avg_ntm
+has_availability
+number_of_reviews
+review_scores_checkin
+review_scores_rating
+review_scores_value
+requires_license
+instant_bookable
+calculated_host_listings_count
+reviews_per_month"
+
+
+
+
+
+
+#cleaning for zipcode:
+data$zipcode<-gsub("NY ","",data$zipcode)
+data$zipcode<-gsub("\n","",data$zipcode)
+data$zipcode<-gsub("-","",data$zipcode)
+data$zipcode<-gsub(" ","",data$zipcode)
+data$zipcode<-gsub("11363","",data$zipcode)
+data$zipcode<-sub("","10000",data$zipcode)
+
+scoringData$zipcode<-gsub("NY ","",scoringData$zipcode)
+scoringData$zipcode<-gsub("\n","",scoringData$zipcode)
+scoringData$zipcode<-gsub("-","",scoringData$zipcode)
+scoringData$zipcode<-gsub("11363","",scoringData$zipcode)
+scoringData$zipcode<-sub("","10000",scoringData$zipcode)
+zipcode<-as.numeric(data$zipcode)
+zipcode<-as.numeric(scoringData$zipcode)
+
+# cleaning security deposit 
+unique(data$security_deposit)
+data$security_deposit[is.na(data$security_deposit)] <- 0
+scoringData$security_deposit[is.na(scoringData$security_deposit)] <- 0
+
+#cleaning host_listings_count 
+
+
+data$host_listings_count[is.na(data$host_listings_count)] <- 0
+scoringData$host_listings_count[is.na(scoringData$host_listings_count)] <- 0
+
+#cleaning host response rate
+
+data$host_response_rate[is.na(data$host_response_rate)]<-0
+scoringData$host_response_rate[is.na(scoringData$host_response_rate)]<-0
+data$host_response_rate<-as.numeric(data$host_response_rate)
+scoringData$host_response_rate<-as.numeric(scoringData$host_response_rate)
+
+
+#cleaning host_response_time
+
+data$host_response_time[is.na(data$host_response_time)]<-0
+scoringData$host_response_time[is.na(scoringData$host_response_time)]<-0
+data$host_response_time<-as.numeric(data$host_response_time)
+scoringData$host_response_time<-as.numeric(scoringData$host_response_time)
+
+# host_neighbourhood
+
+data$host_neighbourhood[is.na(data$host_neighbourhood)]<-"NA"
+scoringData$host_neighbourhood[is.na(scoringData$host_neighbourhood)]<-"NA"
+data$host_neighbourhood<-as.factor(data$host_neighbourhood)
+scoringData$host_neighbourhood<-as.factor(scoringData$host_neighbourhood)
+
+# host_listings_counts
+
+data$host_listings_count[is.na(data$host_listings_count)]<-0
+scoringData$host_listings_count[is.na(scoringData$host_listings_count)]<-0
+data$host_listings_count<-as.numeric(data$host_listings_count)
+scoringData$host_listings_count<-as.numeric(scoringData$host_listings_count)
+
+# host_verifications
+
+data$host_verifications[is.na(data$host_verifications)]<-"NA"
+scoringData$host_verifications[is.na(scoringData$host_verifications)]<-"NA"
+data$host_verfications<-as.factor(data$host_verifications)
+scoringData$host_verifications<-as.factor(scoringData$host_verifications)
+
+# cleaning beds- not in use
+
+unique(scoringData$beds)
+unique(data$beds)
+
+scoringData$beds<-gsub("NA ","0",scoringData$beds)
+data$beds<-gsub("NA ","0",data$beds)
+beds<-as.numeric(data$beds)
+beds<-as.numeric(scoringData$beds)
+
+```
+

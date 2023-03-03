@@ -1,0 +1,153 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Importing and Cleaning the Data
+
+```{r}
+library(dplyr)
+data = read.csv("/Users/meghna/Desktop/rentlala2022/analysisData.csv")
+scoringData = read.csv('/Users/meghna/Desktop/rentlala2022/scoringData.csv')
+
+
+#cleaning for zipcode:
+data$zipcode<-gsub("NY ","",data$zipcode)
+data$zipcode<-gsub("\n","",data$zipcode)
+data$zipcode<-gsub("-","",data$zipcode)
+data$zipcode<-gsub(" ","",data$zipcode)
+data$zipcode<-gsub("11363","",data$zipcode)
+data$zipcode<-sub("","10000",data$zipcode)
+
+scoringData$zipcode<-gsub("NY ","",scoringData$zipcode)
+scoringData$zipcode<-gsub("\n","",scoringData$zipcode)
+scoringData$zipcode<-gsub("-","",scoringData$zipcode)
+scoringData$zipcode<-gsub("11363","",scoringData$zipcode)
+scoringData$zipcode<-sub("","10000",scoringData$zipcode)
+zipcode<-as.numeric(data$zipcode)
+zipcode<-as.numeric(scoringData$zipcode)
+
+# cleaning security deposit 
+unique(data$security_deposit)
+data$security_deposit[is.na(data$security_deposit)] <- 0
+scoringData$security_deposit[is.na(scoringData$security_deposit)] <- 0
+
+#cleaning host_listings_count 
+
+
+data$host_listings_count[is.na(data$host_listings_count)] <- 0
+scoringData$host_listings_count[is.na(scoringData$host_listings_count)] <- 0
+
+#cleaning host response rate
+
+data$host_response_rate[is.na(data$host_response_rate)]<-0
+scoringData$host_response_rate[is.na(scoringData$host_response_rate)]<-0
+data$host_response_rate<-as.numeric(data$host_response_rate)
+scoringData$host_response_rate<-as.numeric(scoringData$host_response_rate)
+
+
+#cleaning host_response_time
+
+data$host_response_time[is.na(data$host_response_time)]<-0
+scoringData$host_response_time[is.na(scoringData$host_response_time)]<-0
+data$host_response_time<-as.numeric(data$host_response_time)
+scoringData$host_response_time<-as.numeric(scoringData$host_response_time)
+
+# host_neighbourhood
+
+data$host_neighbourhood[is.na(data$host_neighbourhood)]<-"NA"
+scoringData$host_neighbourhood[is.na(scoringData$host_neighbourhood)]<-"NA"
+data$host_neighbourhood<-as.factor(data$host_neighbourhood)
+scoringData$host_neighbourhood<-as.factor(scoringData$host_neighbourhood)
+
+# host_listings_counts
+
+data$host_listings_count[is.na(data$host_listings_count)]<-0
+scoringData$host_listings_count[is.na(scoringData$host_listings_count)]<-0
+data$host_listings_count<-as.numeric(data$host_listings_count)
+scoringData$host_listings_count<-as.numeric(scoringData$host_listings_count)
+
+# host_verifications
+
+data$host_verifications[is.na(data$host_verifications)]<-"NA"
+scoringData$host_verifications[is.na(scoringData$host_verifications)]<-"NA"
+data$host_verfications<-as.factor(data$host_verifications)
+scoringData$host_verifications<-as.factor(scoringData$host_verifications)
+
+```
+
+## Final Model
+
+```{r}
+model10 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+neighbourhood_group_cleansed+host_response_rate+host_listings_count+host_has_profile_pic+host_identity_verified+host_is_superhost+reviews_per_month+instant_bookable+number_of_reviews+guests_included+extra_people+minimum_nights+maximum_nights+maximum_minimum_nights+minimum_nights_avg_ntm+review_scores_checkin+review_scores_rating+review_scores_value+security_deposit,data)
+pred10 = predict(model10,newdata=scoringData)
+summary(model10)
+submissionFile11 = data.frame(id = scoringData$id, price = pred10)
+write.csv(submissionFile11, 'sample_submission11.csv',row.names = F)
+
+rmse10 = sqrt(mean((pred10-data$price)^2)); rmse10
+rsq10=summary(model10)$r.squared
+rsq10
+```
+
+## Other Models in Consideration
+
+```{r}
+model9 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+host_has_profile_pic+host_identity_verified+security_deposit+neighbourhood_group_cleansed,data)
+pred9 = predict(model9,newdata=scoringData)
+rmse9 = sqrt(mean((pred9-data$price)^2)); rmse9
+rsq9=summary(model9)$r.squared
+
+
+model8 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+host_has_profile_pic+host_identity_verified+security_deposit,data)
+pred8 = predict(model8,newdata=scoringData)
+rmse8 = sqrt(mean((pred8-data$price)^2)); rmse8
+rsq8=summary(model8)$r.squared
+
+
+model7 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode+room_type+is_location_exact+host_has_profile_pic+host_identity_verified,data)
+pred7 = predict(model7,newdata=scoringData)
+rmse7 = sqrt(mean((pred7-data$price)^2)); rmse7
+rsq7=summary(model7)$r.squared
+
+
+model6 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+bedrooms+accommodates+zipcode,data)
+pred6 = predict(model6,newdata=scoringData)
+rmse6 = sqrt(mean((pred6-data$price)^2)); rmse6
+rsq6=summary(model6)$r.squared
+
+model5 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+bathrooms+accommodates+zipcode,data)
+pred5 = predict(model5,newdata=scoringData)
+rmse5 = sqrt(mean((pred5-data$price)^2)); rmse5
+rsq5=summary(model5)$r.squared
+
+model4 = lm(price~review_scores_cleanliness+availability_30+availability_60+availability_90+availability_365+review_scores_cleanliness+review_scores_accuracy+beds+bathrooms+host_total_listings_count+host_listings_count+is_location_exact+accommodates,data)
+pred4 = predict(model4,newdata=scoringData)
+rmse4 = sqrt(mean((pred4-data$price)^2)); rmse4
+rsq4=summary(model4)$r.squared
+```
+
+## Comparing Models
+
+```{r}
+model = c('model10', 'model9', 'model8', 'model7', 'model6', 'model5', 'model4')
+
+rmse = c(rmse10, rmse9, rmse8, rmse7, rmse6, rmse5,rmse4)
+r2 = round(c(rsq10,rsq9,rsq8,rsq7,rsq6,rsq5,rsq4),4)
+
+results = data.frame(model,rmse,r2)
+
+library(tidyr); library(dplyr)
+results
+```
+
+```{r}
+library(ggplot2)
+results%>%
+  gather(key = metric, value = values,2:3)%>%
+  ggplot(aes(x=model, y=values))+
+  geom_bar(stat='identity', fill='cadetblue')+
+  facet_grid(metric~., scales = 'free_y')
+```
